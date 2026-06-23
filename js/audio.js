@@ -132,15 +132,32 @@ class AudioSystem {
 
         this.recognition.onerror = (event) => {
             console.warn("Speech Recognition Error:", event.error);
-            clearTimeout(this.silenceTimer);
-            if (event.error === 'no-speech' || event.error === 'audio-capture' || event.error === 'not-allowed') {
-                if (this.onSilenceTimeout) this.onSilenceTimeout();
+            // If we are actively expecting input, any error should resolve to prevent FSM deadlocks
+            if (!this.isMuted) {
+                clearTimeout(this.silenceTimer);
+                if (this.onSilenceTimeout) {
+                    console.log("[Audio] Escalating recognition error to silence timeout for recovery.");
+                    this.onSilenceTimeout();
+                }
             }
         };
 
         this.recognition.onend = () => {
+            const wasActive = this.isListening;
             this.isListening = false;
             clearTimeout(this.silenceTimer);
+            
+            // Auto-restart if recognition died unexpectedly during user turn
+            if (wasActive && !this.isMuted) {
+                console.log("[Audio] Speech recognition stopped unexpectedly. Auto-restarting session...");
+                try {
+                    this.recognition.start();
+                    this.isListening = true;
+                    this._resetSilenceTimer();
+                } catch (e) {
+                    console.error("[Audio] Failed to auto-restart speech recognition:", e);
+                }
+            }
         };
     }
 

@@ -4,73 +4,95 @@
  */
 
 class GeminiLLM {
-    constructor() {
-        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-        const token = tokenMeta ? tokenMeta.content : "";
+  constructor() {
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const token = tokenMeta ? tokenMeta.content : "";
 
-        try {
-            this.authSignature = atob(token).split('').reverse().join('');
-        } catch (e) {
-            this.authSignature = '';
-            console.error("Failed to decode auth token.");
-        }
-
-        this.model = 'gemini-3.1-flash-lite';
-        this.baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
+    try {
+      this.authSignature = atob(token).split('').reverse().join('');
+    } catch (e) {
+      this.authSignature = '';
+      console.error("Failed to decode auth token.");
     }
 
-    hasAuth() {
-        return this.authSignature && this.authSignature.trim().length > 0;
+    this.model = 'gemini-3.1-flash-lite';
+    this.baseUrl = `https://generativelanguage.googleapis.com/v1beta/models`;
+  }
+
+  hasAuth() {
+    return this.authSignature && this.authSignature.trim().length > 0;
+  }
+
+  async callApi(systemPrompt, messages, temperature = 0.3, responseFormat = null, previousInteractionId = null, store = false) {
+    if (!this.hasAuth()) throw new Error("Auth Signature is missing.");
+
+    let contents = [];
+    if (typeof messages === 'string') {
+      contents = [{ role: 'user', parts: [{ text: messages }] }];
+    } else if (Array.isArray(messages)) {
+      contents = messages;
+    } else {
+      contents = [messages];
     }
 
-    async callApi(systemPrompt, messages, temperature = 0.3) {
-        if (!this.hasAuth()) throw new Error("Auth Signature is missing.");
+    const payload = {
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: contents,
+      generationConfig: {
+        temperature: temperature
+      }
+    };
 
-        let contents = [];
-        if (typeof messages === 'string') {
-            contents = [{ role: 'user', parts: [{ text: messages }] }];
-        } else {
-            contents = messages;
-        }
-
-        const payload = {
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: contents,
-            generationConfig: {
-                temperature: temperature
-            }
-        };
-
-        const res = await fetch(`${this.baseUrl}?key=${this.authSignature}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(`LLM API Error: ${err.error?.message || res.statusText}`);
-        }
-
-        const data = await res.json();
-        return data.candidates[0].content.parts[0].text;
+    if (responseFormat) {
+      payload.generationConfig.responseMimeType = responseFormat.mime_type || "application/json";
+      if (responseFormat.schema) {
+        payload.generationConfig.responseSchema = responseFormat.schema;
+      }
     }
 
-    parseJson(rawText) {
-        try {
-            const match = rawText.match(/```json\n([\s\S]*?)\n```/) || rawText.match(/\{[\s\S]*\}/);
-            if (match) {
-                return JSON.parse(match[1] || match[0]);
-            }
-            return JSON.parse(rawText);
-        } catch (e) {
-            console.error("JSON parse failed on:", rawText);
-            return null;
-        }
+    const url = `${this.baseUrl}/${this.model}:generateContent?key=${this.authSignature}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(`LLM API Error: ${err.error?.message || res.statusText}`);
     }
 
-    async extractSlots(transcriptText, currentSlots) {
-        const systemPrompt = `Bạn là hệ thống AI trích xuất thông tin khẩn cấp từ cuộc gọi cứu hộ tại TP. Hồ Chí Minh, Việt Nam (mặc định các địa điểm đều ở TP.HCM trừ khi người gọi nhắc đến tỉnh/thành khác).
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      throw new Error("No model output found in the API response.");
+    }
+
+    return {
+      text: text,
+      interactionId: null
+    };
+  }
+
+  parseJson(rawText) {
+    try {
+      const match = rawText.match(/```json\n([\s\S]*?)\n```/) || rawText.match(/\{[\s\S]*\}/);
+      if (match) {
+        return JSON.parse(match[1] || match[0]);
+      }
+      return JSON.parse(rawText);
+    } catch (e) {
+      console.error("JSON parse failed on:", rawText);
+      return null;
+    }
+  }
+
+  async extractSlots(transcriptText, currentSlots) {
+    const systemPrompt = `Bạn là hệ thống AI trích xuất thông tin khẩn cấp từ cuộc gọi cứu hộ tại TP. Hồ Chí Minh, Việt Nam (mặc định các địa điểm đều ở TP.HCM trừ khi người gọi nhắc đến tỉnh/thành khác).
 
 NHIỆM VỤ: Phân tích đoạn hội thoại và trích xuất thông tin cấu trúc dưới dạng JSON.
 
@@ -300,7 +322,7 @@ JSON Trích xuất:
   "is_non_emergency": false
 }`;
 
-        const userPrompt = `--- Hội thoại hiện tại ---
+    const userPrompt = `--- Hội thoại hiện tại ---
 ${transcriptText}
 
 --- Thông tin đã trích xuất trước đó ---
@@ -308,27 +330,91 @@ ${JSON.stringify(currentSlots, null, 2)}
 
 Dựa trên TOÀN BỘ hội thoại ở trên, hãy cập nhật và trả về JSON hoàn chỉnh. Chỉ trả về JSON thuần.`;
 
-        const rawText = await this.callApi(systemPrompt, userPrompt, 0.1);
-        return this.parseJson(rawText);
+    const responseFormat = {
+      type: "text",
+      mime_type: "application/json",
+      schema: {
+        type: "object",
+        properties: {
+          location: {
+            type: "object",
+            properties: {
+              house_number: { type: "string" },
+              street: { type: "string" },
+              intersection: { type: "string" },
+              landmark: { type: "string" },
+              ward_district: { type: "string" },
+              osm_query: { type: "string" },
+              w3w: { type: "string" },
+              plus_code: { type: "string" },
+              latitude: { type: "number" },
+              longitude: { type: "number" },
+              confidence: { type: "number" }
+            },
+            required: ["house_number", "street", "intersection", "landmark", "ward_district", "osm_query", "w3w", "plus_code", "latitude", "longitude", "confidence"]
+          },
+          incident_type: {
+            type: "object",
+            properties: {
+              value: { type: "string" },
+              confidence: { type: "number" }
+            },
+            required: ["value", "confidence"]
+          },
+          casualties: {
+            type: "object",
+            properties: {
+              value: { type: "string" },
+              confidence: { type: "number" },
+              is_critical: { type: "boolean" }
+            },
+            required: ["value", "confidence", "is_critical"]
+          },
+          dispatch: {
+            type: "object",
+            properties: {
+              police: { type: "boolean" },
+              fire: { type: "boolean" },
+              ems: { type: "boolean" }
+            },
+            required: ["police", "fire", "ems"]
+          },
+          requires_human_dispatcher: { type: "boolean" },
+          is_non_emergency: { type: "boolean" }
+        },
+        required: ["location", "incident_type", "casualties", "dispatch", "requires_human_dispatcher", "is_non_emergency"]
+      }
+    };
+
+    const result = await this.callApi(systemPrompt, userPrompt, 0.1, responseFormat, null, false);
+    return this.parseJson(result.text);
+  }
+
+  _buildChatHistory(transcriptText) {
+    // Simple parser to separate the transcript into roles for the Gemini API array
+    const messages = [];
+    const lines = transcriptText.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('[AI]:')) {
+        messages.push({ role: 'model', parts: [{ text: line.replace('[AI]:', '').trim() }] });
+      } else if (line.startsWith('[NGƯỜI GỌI]:')) {
+        messages.push({ role: 'user', parts: [{ text: line.replace('[NGƯỜI GỌI]:', '').trim() }] });
+      }
     }
+    return messages.length > 0 ? messages : [{ role: 'user', parts: [{ text: transcriptText }] }];
+  }
 
-    _buildChatHistory(transcriptText) {
-        // Simple parser to separate the transcript into roles for the Gemini API array
-        const messages = [];
-        const lines = transcriptText.split('\n');
-        for (const line of lines) {
-            if (line.startsWith('[AI]:')) {
-                messages.push({ role: 'model', parts: [{ text: line.replace('[AI]:', '').trim() }] });
-            } else if (line.startsWith('[NGƯỜI GỌI]:')) {
-                messages.push({ role: 'user', parts: [{ text: line.replace('[NGƯỜI GỌI]:', '').trim() }] });
-            }
-        }
-        return messages.length > 0 ? messages : [{ role: 'user', parts: [{ text: transcriptText }] }];
+  async generateQuestion(missingType, currentSlots, transcriptText) {
+    let contextHint = "Thiếu thông tin.";
+    if (missingType === "location") contextHint = "Thiếu hoàn toàn thông tin vị trí. Cần hỏi người gọi đang ở đâu.";
+    else if (missingType === "location_detail") {
+      const street = (currentSlots.location && currentSlots.location.street) ? currentSlots.location.street : '?';
+      contextHint = `Đã có tên đường '${street}' nhưng chưa đủ cụ thể. Cần hỏi về điểm mốc hoặc giao lộ gần đó.`;
     }
+    else if (missingType === "incident_type") contextHint = "Chưa biết loại sự cố. Cần hỏi chuyện gì đang xảy ra.";
+    else if (missingType === "casualties") contextHint = "Chưa biết tình trạng nạn nhân. Cần hỏi có ai bị thương không.";
 
-    async generateQuestion(missingType, currentSlots, transcriptText) {
-        const systemPrompt = `Bạn là AI tổng đài khẩn cấp đang hỗ trợ người gọi trong tình huống nguy hiểm.
-
+    const systemPrompt = `Bạn là AI tổng đài khẩn cấp đang hỗ trợ người gọi trong tình huống nguy hiểm.
 NHIỆM VỤ: Sinh ra MỘT câu hỏi ngắn gọn, tự nhiên bằng tiếng Việt để hỏi thông tin còn thiếu.
 - KHÔNG hỏi máy móc kiểu "Vui lòng cung cấp số nhà" — người đang hoảng loạn sẽ không trả lời được.
 - Nếu thiếu vị trí cụ thể nhưng đã có tên đường: hỏi về ĐIỂM MỐC hoặc GIAO LỘ gần đó.
@@ -336,33 +422,23 @@ NHIỆM VỤ: Sinh ra MỘT câu hỏi ngắn gọn, tự nhiên bằng tiếng 
 - Nếu thiếu thông tin nạn nhân: hỏi "Có ai bị thương không?"
 - Giọng điệu: bình tĩnh, chuyên nghiệp, trấn an người gọi.
 
-Chỉ trả về CÂU HỎI, không có gì khác.`;
-
-        let contextHint = "Thiếu thông tin.";
-        if (missingType === "location") contextHint = "Thiếu hoàn toàn thông tin vị trí. Cần hỏi người gọi đang ở đâu.";
-        else if (missingType === "location_detail") {
-            const street = (currentSlots.location && currentSlots.location.street) ? currentSlots.location.street : '?';
-            contextHint = `Đã có tên đường '${street}' nhưng chưa đủ cụ thể. Cần hỏi về điểm mốc hoặc giao lộ gần đó.`;
-        }
-        else if (missingType === "incident_type") contextHint = "Chưa biết loại sự cố. Cần hỏi chuyện gì đang xảy ra.";
-        else if (missingType === "casualties") contextHint = "Chưa biết tình trạng nạn nhân. Cần hỏi có ai bị thương không.";
-
-        const userPrompt = `Thông tin hiện tại:
+THÔNG TIN SỰ CỐ ĐÃ CÓ:
 ${JSON.stringify(currentSlots, null, 2)}
 
-Hội thoại:
-${transcriptText}
+THÔNG TIN BẠN CẦN PHẢI HỎI NGAY BÂY GIỜ: ${contextHint}
 
-Thông tin cần hỏi: ${contextHint}
+Chỉ trả về CÂU HỎI, không có gì khác.`;
 
-Câu hỏi:`;
+    const chatHistory = this._buildChatHistory(transcriptText);
+    const result = await this.callApi(systemPrompt, chatHistory, 0.3);
+    return {
+      text: result.text.trim().replace(/^["']|["']$/g, ''),
+      interactionId: null
+    };
+  }
 
-        const rawText = await this.callApi(systemPrompt, userPrompt, 0.3);
-        return rawText.trim().replace(/^["']|["']$/g, '');
-    }
-
-    async classifySeverity(slots) {
-        const systemPrompt = `Bạn là hệ thống AI phân loại mức độ nghiêm trọng của sự cố (Triage).
+  async classifySeverity(slots) {
+    const systemPrompt = `Bạn là hệ thống AI phân loại mức độ nghiêm trọng của sự cố (Triage).
 Đánh giá thông tin sự cố sau và phân loại thành: LOW, MEDIUM, hoặc HIGH.
 
 QUY TẮC:
@@ -372,50 +448,63 @@ QUY TẮC:
 
 Chỉ trả về 1 từ duy nhất: LOW, MEDIUM, hoặc HIGH.`;
 
-        const userPrompt = `THÔNG TIN SỰ CỐ:
+    const userPrompt = `THÔNG TIN SỰ CỐ:
 ${JSON.stringify(slots, null, 2)}
 
 MỨC ĐỘ:`;
 
-        const rawText = await this.callApi(systemPrompt, userPrompt, 0.1);
-        const text = rawText.toUpperCase();
-        if (text.includes("HIGH")) return "HIGH";
-        if (text.includes("MEDIUM")) return "MEDIUM";
-        return "LOW";
-    }
+    const responseFormat = {
+      type: "text",
+      mime_type: "text/plain"
+    };
 
-    async generateAgenticResponse(incidentName, guidelines, transcript, slots) {
-        const systemPrompt = `Bạn là AI Tổng đài khẩn cấp (Dispatcher).
+    const result = await this.callApi(systemPrompt, userPrompt, 0.1, responseFormat, null, false);
+    const text = result.text.toUpperCase();
+    if (text.includes("HIGH")) return "HIGH";
+    if (text.includes("MEDIUM")) return "MEDIUM";
+    return "LOW";
+  }
+
+  async generateAgenticResponse(incidentName, guidelines, transcriptText, slots) {
+    const systemPrompt = `Bạn là AI Tổng đài khẩn cấp (Dispatcher).
 THÔNG TIN HIỆN TẠI:
 ${JSON.stringify(slots, null, 2)}
 
 HƯỚNG DẪN SƠ CỨU/AN TOÀN (SOP) CHO: ${incidentName}
 ${JSON.stringify(guidelines, null, 2)}
 
-LƯU Ý QUAN TRỌNG:
-- Nếu tình huống thực tế phức tạp hoặc nguy hiểm, bạn PHẢI ưu tiên hướng dẫn thoát hiểm và đảm bảo an toàn tính mạng.
-- Hãy chủ động khai thác tình hình thực tế, ví dụ: nếu là cháy nhỏ và an toàn, hãy hỏi xem người gọi có bình chữa cháy gần đó không.`;
+QUY TẮC PHÁT NGÔN BẮT BUỘC (QUAN TRỌNG):
+- Trấn an & Xác nhận điều động: Luôn đan xen các cụm từ ngắn gọn để trấn an hoặc xác nhận lực lượng đang đến (Vd: "Cứu hộ đang đến ngay. Hãy bình tĩnh làm theo tôi:", "Cứu hỏa đã biết vị trí của bạn ở tòa nhà 2:").
+- Hướng dẫn đầy đủ, không bỏ sót: Đưa ra các chỉ dẫn an toàn cốt lõi phù hợp với tình huống (như chặn khe cửa, tránh khói, ra hiệu cửa sổ) một cách rõ ràng và trực diện. Tuyệt đối KHÔNG bỏ qua (skip) các hướng dẫn an toàn quan trọng của quy trình.
+- Độ dài vừa phải (Bắt buộc): Câu thoại phát ra ("speak") phải ở mức vừa phải để người gọi dễ tiếp thu qua TTS (Tối đa 3 câu ngắn, khoảng 30-40 từ). Tránh viết đoạn dài dòng trên 50 từ.
+- Tránh dồn dập câu hỏi: Chỉ hỏi tối đa MỘT câu hỏi làm rõ ở cuối lượt thoại.
+- Luôn ưu tiên an toàn tính mạng và hướng dẫn thoát hiểm trước.`;
 
-        const chatHistory = this._buildChatHistory(transcript);
-        chatHistory.push({
-            role: 'user', parts: [{
-                text: `--- QUY TẮC ---
-1. Đọc transcript và xem người gọi vừa nói gì.
-2. Quyết định hành động (action): "ASK" (hỏi/hướng dẫn ngắn dưới 30 từ) hoặc "END" (kết thúc cuộc gọi).
-3. ĐỊNH DẠNG OUTPUT BẮT BUỘC (JSON thuần):
-{
-  "thought": "Suy nghĩ của bạn",
-  "action": "ASK hoặc END",
-  "speak": "Lời thoại hướng dẫn"
-}` }]
-        });
+    const responseFormat = {
+      type: "text",
+      mime_type: "application/json",
+      schema: {
+        type: "object",
+        properties: {
+          thought: { type: "string" },
+          action: { type: "string", enum: ["ASK", "END"] },
+          speak: { type: "string" }
+        },
+        required: ["thought", "action", "speak"]
+      }
+    };
 
-        const rawText = await this.callApi(systemPrompt, chatHistory, 0.3);
-        return this.parseJson(rawText);
-    }
+    const chatHistory = this._buildChatHistory(transcriptText);
+    const result = await this.callApi(systemPrompt, chatHistory, 0.3, responseFormat);
+    const parsed = this.parseJson(result.text) || { thought: "", action: "END", speak: "Tôi hiểu rồi." };
+    return {
+      ...parsed,
+      interactionId: null
+    };
+  }
 
-    async generateEmergencyReport(transcript, slots) {
-        const systemPrompt = `Bạn là Trưởng ca Điều phối Khẩn cấp (Lead Dispatcher). 
+  async generateEmergencyReport(transcript, slots) {
+    const systemPrompt = `Bạn là Trưởng ca Điều phối Khẩn cấp (Lead Dispatcher). 
 Nhiệm vụ của bạn là viết một Báo cáo Sự cố (Incident Report) thật chi tiết, chuyên nghiệp và chuẩn mực dựa trên đoạn hội thoại và thông tin hệ thống AI đã trích xuất.
 
 Định dạng yêu cầu (sử dụng Markdown):
@@ -439,7 +528,7 @@ Nhiệm vụ của bạn là viết một Báo cáo Sự cố (Incident Report) 
 ### 6. Đề xuất & Lưu ý cho Lực lượng Cứu hộ
 (Dựa vào tình hình, đưa ra lời khuyên cho đội Police/Fire/EMS khi họ tiếp cận hiện trường)`;
 
-        const userPrompt = `--- THÔNG TIN HỆ THỐNG TRÍCH XUẤT ---
+    const userPrompt = `--- THÔNG TIN HỆ THỐNG TRÍCH XUẤT ---
 ${JSON.stringify(slots, null, 2)}
 
 --- HỘI THOẠI GHI ÂM (TRANSCRIPT) ---
@@ -447,8 +536,8 @@ ${transcript}
 
 Hãy viết báo cáo sự cố chuyên nghiệp bằng tiếng Việt.`;
 
-        // Dùng temperature thấp để báo cáo có tính khách quan, rõ ràng
-        const rawText = await this.callApi(systemPrompt, userPrompt, 0.2);
-        return rawText;
-    }
+    // Dùng temperature thấp để báo cáo có tính khách quan, rõ ràng
+    const result = await this.callApi(systemPrompt, userPrompt, 0.2, null, null, false);
+    return result.text;
+  }
 }

@@ -286,8 +286,38 @@ class FSMEngine {
             is_running: false,
             retry_count: 0,
             silence_count: 0,
-            returnState: FSMState.SLOT_EVALUATION // Added to fix Python logic loop
+            returnState: FSMState.SLOT_EVALUATION, // Added to fix Python logic loop
+            lastInteractionId: null,
+            lastCallerMessage: ""
         };
+    }
+
+    _mergeSlots(current, extracted) {
+        if (!extracted) return current;
+
+        const merge = (target, source) => {
+            for (const key in source) {
+                let val = source[key];
+                
+                // Coerce string representations of null/NaN/undefined
+                if (val === "null" || val === "NaN" || val === "undefined") {
+                    val = null;
+                }
+
+                if (val !== null && val !== undefined) {
+                    if (typeof val === 'object' && !Array.isArray(val)) {
+                        if (!target[key]) target[key] = {};
+                        merge(target[key], val);
+                    } else {
+                        target[key] = val;
+                    }
+                }
+            }
+        };
+
+        const updated = JSON.parse(JSON.stringify(current));
+        merge(updated, extracted);
+        return updated;
     }
 
     async start() {
@@ -295,6 +325,8 @@ class FSMEngine {
         this.session.transcript = "";
         this.session.retry_count = 0;
         this.session.silence_count = 0;
+        this.session.lastInteractionId = null;
+        this.session.lastCallerMessage = "";
 
         this.state = FSMState.INITIALIZATION;
         this.ui.onStateChange(this.state);
@@ -386,6 +418,7 @@ class FSMEngine {
                 this.session.silence_count = 0;
                 this.ui.addCallerMessage(text);
                 this.session.transcript += `\n[NGƯỜI GỌI]: ${text}`;
+                this.session.lastCallerMessage = text;
 
                 // Always route to SLOT_EVALUATION first to process new slots from caller speech
                 this.state = FSMState.SLOT_EVALUATION;
@@ -433,7 +466,7 @@ class FSMEngine {
                 if (window.updateLogicCanvas) window.updateLogicCanvas('nlp', 'active');
                 const extracted = await this.llm.extractSlots(this.session.transcript, this.session.slots);
                 if (window.updateLogicCanvas) window.updateLogicCanvas('nlp', 'completed');
-                this.session.slots = extracted || this.session.slots;
+                this.session.slots = this._mergeSlots(this.session.slots, extracted);
                 console.log("FSM: slots updated from LLM:", JSON.stringify(this.session.slots));
                 if (this.session.slots) {
                     if (this.ui.onSlotsUpdated) {
@@ -535,8 +568,15 @@ class FSMEngine {
             else if (!hasCas) missingType = "casualties";
 
             if (window.updateLogicCanvas) window.updateLogicCanvas('llm', 'active');
-            const q = await this.llm.generateQuestion(missingType, this.session.slots, this.session.transcript);
+            const result = await this.llm.generateQuestion(
+                missingType,
+                this.session.slots,
+                this.session.transcript
+            );
             if (window.updateLogicCanvas) window.updateLogicCanvas('llm', 'completed');
+
+            const q = result.text;
+            this.session.lastInteractionId = result.interactionId;
 
             this.ui.addAiMessage(q);
             await this.audio.speak(q);
@@ -660,9 +700,15 @@ class FSMEngine {
 
             let sopFlow = SOP_DB[flowKey];
 
-            const agenticResponse = await this.llm.generateAgenticResponse(sopFlow.name, sopFlow.steps, this.session.transcript, this.session.slots);
+            const agenticResponse = await this.llm.generateAgenticResponse(
+                sopFlow.name,
+                sopFlow.steps,
+                this.session.transcript,
+                this.session.slots
+            );
 
             if (agenticResponse && agenticResponse.speak) {
+                this.session.lastInteractionId = agenticResponse.interactionId;
                 this.ui.addAiMessage(agenticResponse.speak);
                 await this.audio.speak(agenticResponse.speak);
                 this.session.transcript += `\n[AI]: ${agenticResponse.speak}`;

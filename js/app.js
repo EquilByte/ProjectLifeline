@@ -424,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
 
         audio = new AudioSystem();
+        window.audio = audio;
         audio.unlockAudioContext().catch(e => console.warn("AudioContext unlock failed:", e));
         
         const savedOpenAIKey = localStorage.getItem('openai_api_key');
@@ -431,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
             audio.setOpenAIKey(savedOpenAIKey);
         }
         fsm = new FSMEngine(llm, audio, uiCallbacks);
+        window.fsm = fsm;
         fsm.start();
     });
 
