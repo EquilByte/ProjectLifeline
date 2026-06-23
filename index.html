@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="d3JSbDZHdXZFNXYyZHVMYVc0LUE2U0cwX0xKMGVMV1BIQnN4emRHUnNRRUo2TlI4YkEuUUE=">
+    <title>DispatcherAI - Project Lifeline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="js/openlocationcode.js"></script>
+</head>
+
+<body>
+    <!-- Premium Educational Light-Themed Modal -->
+    <div class="intro-modal-backdrop" id="intro-modal">
+        <div class="intro-modal-card">
+            
+            <header class="intro-modal-header">
+                <div class="intro-modal-logo-area">
+                    <div class="intro-modal-icon-wrapper">
+                        <i data-lucide="shield-alert" style="stroke: #2563eb; width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <h1 class="intro-modal-title">PROJECT LIFELINE</h1>
+                    </div>
+                </div>
+            </header>
+
+            <section class="intro-modal-body">
+                <!-- Architecture Modes -->
+                <div class="intro-arch-grid">
+                    <!-- About this Web Card -->
+                    <div class="intro-arch-card demo">
+                        <strong class="intro-arch-title">
+                            <i data-lucide="monitor" style="width: 18px; height: 18px; stroke: #3b82f6;"></i> 1. About this Web Demonstration
+                        </strong>
+                        <p class="intro-arch-desc">
+                            A front-end browser demonstration built to showcase the core state machine, entity triage, and dispatching logic under strict hackathon portability constraints (runs on a single double-click, zero backend setup, serverless execution). It connects browser voice inputs directly to the <strong>Google Gemini 3.1 Flash Lite API</strong> for extraction/NLP, uses <strong>ElevenLabs v2.5 Turbo</strong> to solve latency, and cascades to Web Speech synthesis APIs for seamless, low-latency client-side interaction.
+                        </p>
+                    </div>
+
+                    <!-- Real-World Deployment Card -->
+                    <div class="intro-arch-card production">
+                        <strong class="intro-arch-title">
+                            <i data-lucide="shield-check" style="width: 18px; height: 18px; stroke: #10b981;"></i> 2. Real-World Production Deployment
+                        </strong>
+                        <p class="intro-arch-desc">
+                            Designed to be deployed as a completely secure, offline system inside municipal emergency communication centers (ECCs). It operates on <strong>on-premise local server hardware</strong> hosting quantized local models (such as Gemma-9B) alongside offline STT engines (like Whisper) and local TTS voices. This architecture ensures absolute compliance with public security regulations and privacy laws, preventing sensitive emergency transcripts, voice streams, and caller coordinates from ever leaving the internal government intranet.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Pipeline Walkthrough -->
+                <div>
+                    <strong class="intro-section-title">
+                        <i data-lucide="git-commit" style="width: 18px; height: 18px;"></i> Cognitive Processing Pipeline (Logic Canvas)
+                    </strong>
+                    <div class="pipeline-stepper-container">
+                        <div class="intro-stepper">
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">1</span>
+                                <p class="intro-step-content"><strong>VAD & STT:</strong> Captures the caller's voice stream and runs Voice Activity Detection offline.</p>
+                            </div>
+                            
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">2</span>
+                                <p class="intro-step-content"><strong>NLP Parse:</strong> Performs Natural Language Processing to extract slots, intentions, and key incident entities.</p>
+                            </div>
+
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">3</span>
+                                <p class="intro-step-content"><strong>GIS Map:</strong> Queries geographical indexes to pin resolved addresses and landmarks in real time.</p>
+                            </div>
+
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">4</span>
+                                <p class="intro-step-content"><strong>FSM Loop:</strong> Feeds extracted slots to the state machine to direct dialogue flow and prompt next steps.</p>
+                            </div>
+
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">5</span>
+                                <p class="intro-step-content"><strong>Severity Triage:</strong> Dynamically triages the emergency severity class (Low, Medium, or High).</p>
+                            </div>
+
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">6</span>
+                                <p class="intro-step-content"><strong>SOP Guidance:</strong> Fetches local emergency Standard Operating Procedures to advise dispatcher operations.</p>
+                            </div>
+
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">7</span>
+                                <p class="intro-step-content"><strong>HIL Handoff:</strong> Monitors caller dialog state and escalates safely to a Human-in-the-Loop when triggered.</p>
+                            </div>
+
+                            <div class="intro-step-item">
+                                <span class="intro-step-number">8</span>
+                                <p class="intro-step-content"><strong>Report Gen:</strong> Automatically compiles and writes official incident reports in Markdown upon hangup.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testing Instructions -->
+                <div>
+                    <strong class="intro-section-title">
+                        <i data-lucide="play-circle" style="width: 18px; height: 18px;"></i> How to Test the Voice-to-Voice Operator
+                    </strong>
+                    <div class="intro-stepper">
+                        <div class="intro-step-item">
+                            <span class="intro-step-number">1</span>
+                            <p class="intro-step-content">Locate the simulated <strong>smartphone emulator</strong> on the right pane of the dashboard.</p>
+                        </div>
+                        <div class="intro-step-item">
+                            <span class="intro-step-number">2</span>
+                            <p class="intro-step-content">Click the green <strong>Call Button</strong> and approve browser microphone permissions.</p>
+                        </div>
+                        <div class="intro-step-item">
+                            <span class="intro-step-number">3</span>
+                            <div class="intro-step-content">
+                                Speak in Vietnamese to report a simulated crisis:
+                                <br>
+                                <span class="intro-speech-bubble">"Có một đám cháy lớn tại ngã tư Nguyễn Đình Chiểu với Cách Mạng Tháng Tám, có người ngạt khói!"</span>
+                            </div>
+                        </div>
+                        <div class="intro-step-item">
+                            <span class="intro-step-number">4</span>
+                            <p class="intro-step-content">Observe the Leaflet map center, the incident badges update, and listen to the AI operator's safety advice.</p>
+                        </div>
+                        <div class="intro-step-item">
+                            <span class="intro-step-number">5</span>
+                            <p class="intro-step-content">Click the red <strong>Hang Up Button</strong> to end the call and see the automated incident report compile.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="intro-modal-footer">
+                <button class="intro-btn-ack" id="btn-close-intro" disabled>
+                    Acknowledge (5s)
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <div class="app-container">
+
+        <nav class="sidebar-slim">
+            <div class="top-icons">
+                <div class="icon-btn active" id="nav-ai-mode" title="AI Agentic Mode"><i data-lucide="bot"></i></div>
+                <div class="icon-btn" id="nav-hil-mode" title="Human Dispatcher Mode"><i data-lucide="user"></i></div>
+                <div class="icon-btn active" id="btn-toggle-phone" title="Toggle Phone Visibility"><i data-lucide="smartphone"></i></div>
+            </div>
+            <div class="bottom-icons">
+                <div class="icon-btn" id="btn-export-json" title="Export JSON"><i data-lucide="braces"></i></div>
+                <div class="icon-btn" id="btn-export-md" title="Export Markdown"><i data-lucide="file-text"></i></div>
+            </div>
+        </nav>
+
+        <div class="dispatcher-dashboard">
+            <div class="logic-canvas">
+                <div class="logic-node" id="node-vad">
+                    <div class="node-icon"><i data-lucide="mic"></i></div>
+                    <div class="node-label">VAD Active</div>
+                </div>
+                <div class="logic-line" id="line-1"></div>
+                <div class="logic-node" id="node-stt">
+                    <div class="node-icon"><i data-lucide="activity"></i></div>
+                    <div class="node-label">STT Stream</div>
+                </div>
+                <div class="logic-line" id="line-2"></div>
+                <div class="logic-node" id="node-nlp">
+                    <div class="node-icon"><i data-lucide="file-json-2"></i></div>
+                    <div class="node-label">NLP Parse</div>
+                </div>
+                <div class="logic-line" id="line-3"></div>
+                <div class="logic-node" id="node-gis">
+                    <div class="node-icon"><i data-lucide="map-pin"></i></div>
+                    <div class="node-label">GIS Resolve</div>
+                </div>
+                <div class="logic-line" id="line-4"></div>
+                <div class="logic-node" id="node-fsm">
+                    <div class="node-icon"><i data-lucide="git-branch"></i></div>
+                    <div class="node-label">FSM Eval</div>
+                </div>
+                <div class="logic-line" id="line-5"></div>
+                <div class="logic-node" id="node-llm">
+                    <div class="node-icon"><i data-lucide="brain"></i></div>
+                    <div class="node-label">LLM Gen</div>
+                </div>
+                <div class="logic-line" id="line-6"></div>
+                <div class="logic-node" id="node-tts">
+                    <div class="node-icon"><i data-lucide="speech"></i></div>
+                    <div class="node-label">TTS Synth</div>
+                </div>
+                <div class="logic-line" id="line-7"></div>
+                <div class="logic-node" id="node-out">
+                    <div class="node-icon"><i data-lucide="volume-2"></i></div>
+                    <div class="node-label">Audio Out</div>
+                </div>
+            </div>
+
+            <div class="dashboard-top">
+                <aside class="panel-left">
+                    <div class="panel-header">
+                        <h2>Incident Details</h2>
+                        <span class="badge badge-critical" id="ui-severity-badge">UNKNOWN</span>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Type</span>
+                            <span class="info-value" id="ui-incident-type">Pending...</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Location</span>
+                            <span class="info-value" id="ui-location">Unknown</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Casualties</span>
+                            <span class="info-value" id="ui-casualties">None reported</span>
+                        </div>
+                    </div>
+                    <div class="dispatch-section">
+                        <span class="info-label">Dispatch Units:</span>
+                        <div class="dispatch-buttons">
+                            <button class="btn btn-police" id="btn-police"><i data-lucide="shield"></i> Police</button>
+                            <button class="btn btn-fire" id="btn-fire"><i data-lucide="flame"></i> Fire</button>
+                            <button class="btn btn-ems" id="btn-ems"><i data-lucide="truck"></i> EMS</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <main class="panel-center">
+                    <div id="map"></div>
+                </main>
+            </div>
+
+            <div class="dashboard-bottom">
+                <div class="panel-transcript">
+                    <div class="panel-header">
+                        <h2>Live Transcript</h2>
+                        <span id="ui-fsm-state">Ready</span>
+                    </div>
+                    <div class="transcript-container" id="transcript-container">
+                        <div class="chat-message ai">
+                            <div class="avatar"><i data-lucide="bot"></i></div>
+                            <div class="bubble">Tổng đài khẩn cấp AI xin nghe.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-reports" id="panel-reports">
+                    <div class="panel-header">
+                        <h2>Automated Call Report</h2>
+                    </div>
+                    <div class="report-content" id="ui-report-content">
+                        <div class="empty-state">
+                            <i data-lucide="file-check-2"></i>
+                            <p>Report will be generated automatically via AI when the call concludes.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-hil hidden" id="panel-hil">
+                    <div class="panel-header">
+                        <h2>Human Dispatcher Mode (HIL)</h2>
+                        <span class="badge badge-moderate">Active</span>
+                    </div>
+                    <div class="hil-content">
+                        <div class="sop-recommendations" id="ui-hil-sop">
+                            <p>Loading SOP recommendations...</p>
+                        </div>
+                        <div class="hil-controls">
+                            <button id="hil-mic-btn" class="btn btn-mic"><i data-lucide="mic"></i> <span>Hold to
+                                    Talk</span></button>
+                            <button id="hil-end-call-btn" class="btn btn-danger"><i data-lucide="phone-off"></i> End
+                                Call & Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mock-phone-container">
+            <div class="mock-phone">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                    <div class="phone-header">
+                        <div class="phone-time">10:42</div>
+                        <div class="phone-icons"><i data-lucide="wifi"></i> <i data-lucide="battery-full"></i></div>
+                    </div>
+                    <div class="phone-body">
+                        <div class="caller-id">Emergency Call</div>
+                        <div class="phone-status" id="phone-status">Ready to Call</div>
+                        <div class="phone-timer" id="phone-timer">00:00</div>
+                        <div class="phone-mic">
+                            <i data-lucide="mic" id="phone-mic-icon"></i>
+                        </div>
+                    </div>
+                    <div class="phone-actions">
+                        <button id="start-call-btn" class="phone-btn call-btn"><i data-lucide="phone"></i></button>
+                        <button id="end-call-btn" class="phone-btn end-btn hidden"><i
+                                data-lucide="phone-off"></i></button>
+                    </div>
+                    <div class="phone-home-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://code.responsivevoice.org/responsivevoice/responsivevoice.js"></script>
+    <script src="js/llm.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/fsm.js"></script>
+    <script src="js/app.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>
