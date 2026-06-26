@@ -8,12 +8,15 @@ class GeminiLLM {
     const tokenMeta = document.querySelector('meta[name="csrf-token"]');
     const token = tokenMeta ? tokenMeta.content : "";
 
+    let metaToken = '';
     try {
-      this.authSignature = atob(token).split('').reverse().join('');
+      metaToken = token ? atob(token).split('').reverse().join('') : '';
     } catch (e) {
-      this.authSignature = '';
       console.error("Failed to decode auth token.");
     }
+    
+    const configKey = window.CONFIG?.GEMINI_API_KEY;
+    this.authSignature = (configKey && !configKey.includes('YOUR_GEMINI_API_KEY')) ? configKey : metaToken;
 
     this.model = 'gemini-3.1-flash-lite';
     this.baseUrl = `https://generativelanguage.googleapis.com/v1beta/models`;

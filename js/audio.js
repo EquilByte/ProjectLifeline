@@ -9,20 +9,12 @@ class AudioSystem {
         this.onSilenceTimeout = null;
         this.llm = null; // Will be injected by app.js
 
-        this.elevenLabsVoices = [
-            {
-                key: "sk_ef0bca2ab208a4fff2a716d1756b5aabdff563d0b50a43d2",
-                voiceId: "6Uh5nRLZ7GiaN4UMj68z"
-            },
-            {
-                key: "sk_061e6da93cc8e261eeac6a8e7768ebb06f6f19d2ac043193",
-                voiceId: "P1d6FZVycYNYhkk5H2aB"
-            },
-            {
-                key: "sk_89adc046ed0a141ef9668511158a35eebecd2c8e947aff31",
-                voiceId: "rVe0QW8mRFFAsCE18jXB"
-            }
-        ].filter(v => v.key && v.key.trim().length > 0);
+        const configVoices = window.CONFIG?.ELEVENLABS_VOICES || [];
+        this.elevenLabsVoices = configVoices.filter(v => 
+            v.key && 
+            v.key.trim().length > 0 && 
+            !v.key.includes('YOUR_ELEVENLABS_API_KEY')
+        );
 
         // Streaming Context
         this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();

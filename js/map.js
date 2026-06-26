@@ -4,7 +4,7 @@
 
 class MapSystem {
     constructor(containerId) {
-        this.mapboxToken = 'pk.eyJ1IjoiZXF1aWxieXRlIiwiYSI6ImNtcHZodHJ4bDI5Y3gycW9uOWtkYWlscmcifQ.B6dPZdr7geBciVinbyu-7w';
+        this.mapboxToken = window.CONFIG?.MAPBOX_TOKEN || 'YOUR_MAPBOX_TOKEN_HERE';
 
         const hcmcBounds = [
             [12, 106],
