@@ -22,8 +22,6 @@ It connects browser voice inputs directly to the **Google Gemini API** for extra
    - `GEMINI_API_KEY`: Your Google Gemini API key.
    - `ELEVENLABS_VOICES`: Your ElevenLabs API keys (you can configure multiple for fallback/variety).
 
-*Note: Never commit your real API keys to public repositories.*
-
 ## How to Run
 
 Since this is a fully client-side application, you can simply open `web_app/index.html` in your modern web browser (Google Chrome or Microsoft Edge recommended) to start the application. 
